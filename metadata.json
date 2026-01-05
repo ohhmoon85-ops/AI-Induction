@@ -1,0 +1,5 @@
+{
+  "name": "AI Induction Autonomous Cooking System",
+  "description": "A simulation and control dashboard for the patented AI induction system (Patent 10-2708883), featuring Ground Truth temperature sensing, multi-modal sensor fusion, and predictive boil-over prevention.",
+  "requestFramePermissions": []
+}
