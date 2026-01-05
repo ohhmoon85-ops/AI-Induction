@@ -6,14 +6,12 @@ import {
   ShieldCheck, 
   Thermometer, 
   Waves, 
-  AlertTriangle,
   Play,
   Square,
-  ChevronRight,
-  Info,
   Clock,
   UtensilsCrossed,
-  Timer
+  Timer,
+  CheckCircle2
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -26,7 +24,7 @@ import {
   AreaChart,
   Area
 } from 'recharts';
-import { SensorData, CookingState, RAMEN_RECIPE, Recipe } from './types';
+import { SensorData, CookingState, RAMEN_RECIPE } from './types';
 
 // Components
 import Header from './components/Header';
@@ -63,13 +61,12 @@ const App: React.FC = () => {
 
       // 1. Heating Logic
       if (currentPower > 0) {
-        // High thermal efficiency near boiling
-        const heatGain = (currentPower / 15) * (1.1 - nextGroundTruth / 130);
+        const heatGain = (currentPower / 12) * (1.2 - nextGroundTruth / 150);
         nextGroundTruth += heatGain;
         nextLegacy += (nextGroundTruth - nextLegacy) * 0.04 + (Math.random() - 0.5);
       } else {
-        nextGroundTruth -= 0.15;
-        nextLegacy -= 0.1;
+        nextGroundTruth -= 0.1;
+        nextLegacy -= 0.08;
       }
 
       // 2. State Machine Logic (Ramen Auto Mode)
@@ -78,29 +75,26 @@ const App: React.FC = () => {
       if (state === CookingState.HEATING_WATER) {
         if (nextGroundTruth >= RAMEN_RECIPE.targetTemp) {
           nextState = CookingState.WAITING_FOR_INGREDIENTS;
-          currentPower = 2; // Keep warm
+          currentPower = 2;
         }
       } else if (state === CookingState.COOKING_INGR_ACTIVE) {
-        // Boil-over prevention logic when noodles are in
-        // Starch causes more vibration and sudden froth rising
         const frothFactor = isIngredientsAdded ? 4 : 1;
-        nextVibration = 5 + (nextGroundTruth > 96 ? (nextGroundTruth - 96) * 5 * frothFactor : 0) + (Math.random() * 5);
+        nextVibration = 5 + (nextGroundTruth > 96 ? (nextGroundTruth - 96) * 6 * frothFactor : 0) + (Math.random() * 5);
         
-        if (nextVibration > 35) {
+        if (nextVibration > 38) {
           nextState = CookingState.PREDICTING_BOILOVER;
-          currentPower = 3; // Drastic reduction
+          currentPower = 2;
         } else if (remainingTime <= 0) {
           nextState = CookingState.COMPLETE;
           currentPower = 0;
           setIsRunning(false);
         } else {
-          currentPower = 8; // Normal boiling power
+          currentPower = 8;
         }
-        
-        setRemainingTime(prev => Math.max(0, prev - 0.2)); // 0.2s per step
+        setRemainingTime(prev => Math.max(0, prev - 0.2));
       } else if (state === CookingState.PREDICTING_BOILOVER) {
-        nextVibration -= 5; // Recovery
-        if (nextVibration < 20) {
+        nextVibration -= 6;
+        if (nextVibration < 15) {
           nextState = CookingState.COOKING_INGR_ACTIVE;
         }
       }
@@ -149,42 +143,41 @@ const App: React.FC = () => {
     <div className="flex h-screen overflow-hidden bg-[#0a0a0c] text-slate-100">
       <Sidebar />
 
-      <main className="flex-1 flex flex-col overflow-y-auto p-6 space-y-6">
+      <main className="flex-1 flex flex-col overflow-y-auto p-4 lg:p-6 space-y-6">
         <Header />
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          
           <div className="lg:col-span-8 space-y-6">
-            {/* Main Visualizer Area */}
-            <div className="glass rounded-3xl p-8 border border-white/5 relative overflow-hidden h-[450px]">
+            <div className="glass rounded-[2rem] p-6 lg:p-8 border border-white/5 relative overflow-hidden h-[450px]">
               
-              {/* Ramen Mode HUD */}
               <div className="absolute top-6 left-8 z-10 flex flex-col gap-2">
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-blue-600 rounded-lg">
+                  <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-900/20">
                     <UtensilsCrossed className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Recipe Active</h3>
-                    <p className="text-xl font-bold">{RAMEN_RECIPE.name}</p>
+                    <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Intelligence</h3>
+                    <p className="text-xl font-bold tracking-tight">{RAMEN_RECIPE.name}</p>
                   </div>
                 </div>
 
                 <div className="flex items-center gap-4 mt-4">
-                   <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10">
-                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Status</p>
+                   <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                     <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">System Status</p>
                      <div className="flex items-center gap-2">
-                        <span className={`w-2 h-2 rounded-full ${state === CookingState.IDLE ? 'bg-slate-500' : 'bg-emerald-500 animate-pulse'}`} />
+                        <span className={`w-2 h-2 rounded-full ${state === CookingState.IDLE ? 'bg-slate-600' : 'bg-emerald-500 animate-pulse'}`} />
                         <span className="text-sm font-semibold">{state.replace(/_/g, ' ')}</span>
                      </div>
                    </div>
                    
-                   {state === CookingState.COOKING_INGR_ACTIVE && (
-                     <div className="px-4 py-2 bg-blue-600/20 rounded-2xl border border-blue-500/30">
-                        <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Time Remaining</p>
+                   {(state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER) && (
+                     <div className="px-4 py-2 bg-blue-600/10 rounded-2xl border border-blue-500/20 backdrop-blur-md">
+                        <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Cook Timer</p>
                         <div className="flex items-center gap-2">
                            <Timer className="w-4 h-4 text-blue-400" />
-                           <span className="text-sm font-black tabular-nums">{Math.floor(remainingTime / 60)}:{(remainingTime % 60).toFixed(0).padStart(2, '0')}</span>
+                           <span className="text-sm font-black tabular-nums tracking-tighter text-blue-100">
+                             {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toFixed(0).padStart(2, '0')}
+                           </span>
                         </div>
                      </div>
                    )}
@@ -192,36 +185,40 @@ const App: React.FC = () => {
               </div>
 
               <Visualizer 
-                state={state as any} 
+                state={state} 
                 temp={history[history.length - 1]?.groundTruthTemp || 22}
                 power={power}
               />
 
-              {/* Interaction Overlays */}
-              <div className="absolute bottom-8 left-8 right-8 flex justify-between items-center">
-                <div className="flex items-center gap-3 bg-black/40 backdrop-blur-md p-4 rounded-2xl border border-white/10">
+              <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3 bg-black/60 backdrop-blur-xl p-4 rounded-2xl border border-white/10 w-full md:w-auto">
                   <ShieldCheck className={`w-6 h-6 ${state === CookingState.PREDICTING_BOILOVER ? 'text-orange-500 animate-bounce' : 'text-emerald-500'}`} />
                   <div>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase">AI Safety Protocol</p>
-                    <p className="text-xs font-medium">
-                      {state === CookingState.PREDICTING_BOILOVER ? 'Sudden Froth Detected - Reducing Power' : 'Surface Monitoring Active'}
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Boil-over Protection</p>
+                    <p className="text-xs font-medium text-slate-200">
+                      {state === CookingState.PREDICTING_BOILOVER ? 'Vibration Anomaly - Throttling Power' : 'Surface Monitoring Active'}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-3">
+                <div className="flex gap-3 w-full md:w-auto">
                   {state === CookingState.IDLE && (
-                    <button onClick={startRamenMode} className="px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-blue-900/40 transition-all active:scale-95">
-                      <Play className="w-5 h-5 fill-current" /> 라면 자동조리 시작
+                    <button onClick={startRamenMode} className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-2xl shadow-blue-600/20 transition-all hover:-translate-y-1">
+                      <Play className="w-5 h-5 fill-current" /> 자동조리 시작
                     </button>
                   )}
                   {state === CookingState.WAITING_FOR_INGREDIENTS && (
-                    <button onClick={addIngredients} className="px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-bold flex items-center gap-2 shadow-xl shadow-emerald-900/40 animate-bounce transition-all">
-                      <UtensilsCrossed className="w-5 h-5" /> 면과 스프를 넣었습니다
+                    <button onClick={addIngredients} className="w-full md:w-auto px-8 py-4 bg-emerald-600 hover:bg-emerald-500 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-2xl shadow-emerald-600/20 animate-bounce transition-all">
+                      <UtensilsCrossed className="w-5 h-5" /> 재료 투입 완료
+                    </button>
+                  )}
+                  {state === CookingState.COMPLETE && (
+                    <button onClick={() => {setState(CookingState.IDLE); setHistory([]);}} className="w-full md:w-auto px-8 py-4 bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded-2xl font-bold flex items-center justify-center gap-2">
+                      <CheckCircle2 className="w-5 h-5" /> 조리 완료 (확인)
                     </button>
                   )}
                   {isRunning && (
-                    <button onClick={() => {setIsRunning(false); setState(CookingState.IDLE);}} className="p-4 bg-red-600/20 hover:bg-red-600/40 text-red-500 rounded-2xl border border-red-500/30 transition-all">
+                    <button onClick={() => {setIsRunning(false); setState(CookingState.IDLE); setPower(0);}} className="p-4 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-2xl border border-red-500/20 transition-all">
                       <Square className="w-5 h-5 fill-current" />
                     </button>
                   )}
@@ -229,35 +226,41 @@ const App: React.FC = () => {
               </div>
             </div>
 
-            {/* Real-time Telemetry Charts */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="glass rounded-3xl p-6 border border-white/5">
-                <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
-                  <Thermometer className="w-4 h-4 text-orange-400" /> Ground Truth Thermal Response
+                <h4 className="text-xs font-bold mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
+                  <Thermometer className="w-4 h-4 text-orange-400" /> Thermal Ground Truth (GT)
                 </h4>
                 <div className="h-40">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <defs>
+                        <linearGradient id="colorGt" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
+                          <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
                       <XAxis dataKey="time" hide />
-                      <Tooltip contentStyle={{backgroundColor: '#111', border: 'none', borderRadius: '8px'}} />
-                      <Area type="monotone" dataKey="groundTruthTemp" stroke="#f97316" fill="rgba(249,115,22,0.1)" strokeWidth={3} />
-                      <Line type="monotone" dataKey="legacyTemp" stroke="#475569" strokeDasharray="3 3" dot={false} />
+                      <YAxis hide domain={[0, 120]} />
+                      <Tooltip contentStyle={{backgroundColor: '#0a0a0c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px'}} />
+                      <Area type="monotone" dataKey="groundTruthTemp" stroke="#f97316" fill="url(#colorGt)" strokeWidth={3} isAnimationActive={false} />
+                      <Line type="monotone" dataKey="legacyTemp" stroke="#475569" strokeDasharray="4 4" dot={false} isAnimationActive={false} />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
               </div>
               <div className="glass rounded-3xl p-6 border border-white/5">
-                <h4 className="text-sm font-bold mb-4 flex items-center gap-2">
-                  <Waves className="w-4 h-4 text-blue-400" /> Surface Vibration Analysis
+                <h4 className="text-xs font-bold mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
+                  <Waves className="w-4 h-4 text-blue-400" /> Acoustic & Vibration Pulse
                 </h4>
                 <div className="h-40">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={history}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
                       <XAxis dataKey="time" hide />
-                      <Line type="monotone" dataKey="vibration" stroke="#3b82f6" strokeWidth={2} dot={false} />
-                      {state === CookingState.PREDICTING_BOILOVER && <rect x="0" y="0" width="100%" height="100%" fill="rgba(239,68,68,0.1)" />}
+                      <YAxis hide domain={[0, 100]} />
+                      <Line type="monotone" dataKey="vibration" stroke="#3b82f6" strokeWidth={2} dot={false} isAnimationActive={false} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -267,47 +270,46 @@ const App: React.FC = () => {
 
           <div className="lg:col-span-4 space-y-6">
             <div className="glass rounded-3xl p-6 border border-white/5">
-               <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                 <Clock className="w-5 h-5 text-blue-500" /> 조리 진행 단계
+               <h3 className="text-sm font-bold mb-6 flex items-center gap-2 uppercase tracking-widest text-slate-400">
+                 <Clock className="w-5 h-5 text-blue-500" /> 조리 타임라인
                </h3>
                <div className="space-y-6 relative">
-                  <div className="absolute left-4 top-2 bottom-2 w-0.5 bg-white/10" />
+                  <div className="absolute left-4 top-2 bottom-2 w-[1px] bg-white/5" />
                   
                   <StepItem 
                     done={state !== CookingState.IDLE && state !== CookingState.HEATING_WATER} 
                     active={state === CookingState.HEATING_WATER} 
-                    label="물 끓이기 (최고 화력)" 
+                    label="수온 가열 단계 (100°C 도달)" 
                   />
                   <StepItem 
                     done={isIngredientsAdded} 
                     active={state === CookingState.WAITING_FOR_INGREDIENTS} 
-                    label="면/스프 투입 대기" 
+                    label="면/스프 투입 및 안정화" 
                   />
                   <StepItem 
                     done={state === CookingState.COMPLETE} 
                     active={state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER} 
-                    label="자동 조리 & 넘침 방지" 
+                    label="AI 넘침 감지 및 자율 화력 조절" 
                   />
                   <StepItem 
                     done={false} 
                     active={state === CookingState.COMPLETE} 
-                    label="조리 완료" 
+                    label="조리 완료 및 전원 차단" 
                   />
                </div>
             </div>
 
             <div className="glass rounded-3xl p-6 border border-white/5">
                <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-bold">시스템 효율</h3>
-                  <Zap className="w-4 h-4 text-yellow-400" />
+                  <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">실시간 연산 효율</h3>
+                  <Zap className="w-4 h-4 text-yellow-500" />
                </div>
                <div className="space-y-4">
-                  <MetricCard label="Power Output" value={`${power}/10`} description="Current IH Level" icon={<Zap />} />
-                  <MetricCard label="Energy Saving" value="28%" description="Precise control" improvement icon={<Activity />} />
+                  <MetricCard label="Induction Power" value={`${power}/10`} description="Dynamic Level" icon={<Zap />} />
+                  <MetricCard label="Thermal Precision" value="±0.2°C" description="GT Direct Sensing" improvement icon={<Activity />} />
                </div>
             </div>
           </div>
-
         </div>
       </main>
     </div>
@@ -315,9 +317,9 @@ const App: React.FC = () => {
 };
 
 const StepItem: React.FC<{ done: boolean, active: boolean, label: string }> = ({ done, active, label }) => (
-  <div className={`relative flex items-center gap-6 pl-2 transition-all ${active ? 'opacity-100 scale-105' : 'opacity-40'}`}>
-    <div className={`w-4 h-4 rounded-full z-10 ${done ? 'bg-blue-500' : active ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-slate-700'}`} />
-    <span className={`text-sm font-bold ${active ? 'text-white' : 'text-slate-400'}`}>{label}</span>
+  <div className={`relative flex items-center gap-6 pl-2 transition-all duration-500 ${active ? 'opacity-100 translate-x-1' : 'opacity-30'}`}>
+    <div className={`w-4 h-4 rounded-full z-10 transition-colors ${done ? 'bg-blue-500' : active ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : 'bg-slate-800'}`} />
+    <span className={`text-xs font-bold tracking-tight ${active ? 'text-white' : 'text-slate-400'}`}>{label}</span>
   </div>
 );
 
