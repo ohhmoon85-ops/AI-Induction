@@ -2,12 +2,18 @@
 import React from 'react';
 import { Search, Bell, Settings } from 'lucide-react';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+  activeTab: string;
+}
+
+const Header: React.FC<HeaderProps> = ({ activeTab }) => {
   return (
     <header className="flex justify-between items-center py-2">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">AI Induction Dashboard</h1>
-        <p className="text-slate-500 text-sm">Real-time Autonomous Cooking Analysis (Patent Ver.)</p>
+        <p className="text-slate-500 text-sm">
+          {activeTab === 'Overview' ? 'Real-time Autonomous Cooking Analysis (Patent Ver.)' : `Section: ${activeTab}`}
+        </p>
       </div>
       <div className="flex items-center gap-4">
         <div className="relative hidden md:block">

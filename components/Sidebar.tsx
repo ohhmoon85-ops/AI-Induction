@@ -10,7 +10,12 @@ import {
   Flame
 } from 'lucide-react';
 
-const Sidebar: React.FC = () => {
+interface SidebarProps {
+  activeTab: string;
+  setActiveTab: (tab: string) => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ activeTab, setActiveTab }) => {
   return (
     <aside className="w-20 lg:w-64 bg-[#0a0a0c] border-r border-white/5 flex flex-col py-6">
       <div className="px-6 mb-10 flex items-center gap-3">
@@ -21,12 +26,12 @@ const Sidebar: React.FC = () => {
       </div>
 
       <nav className="flex-1 px-4 space-y-2">
-        <SidebarItem icon={<Home />} label="Overview" active />
-        <SidebarItem icon={<Layers />} label="System Arch" />
-        <SidebarItem icon={<BarChart2 />} label="Analytics" />
-        <SidebarItem icon={<Clock />} label="Cooking Logs" />
-        <SidebarItem icon={<Database />} label="Ground Truth" />
-        <SidebarItem icon={<ShieldAlert />} label="Safety Protocols" />
+        <SidebarItem icon={<Home />} label="Overview" active={activeTab === 'Overview'} onClick={() => setActiveTab('Overview')} />
+        <SidebarItem icon={<Layers />} label="System Arch" active={activeTab === 'System Arch'} onClick={() => setActiveTab('System Arch')} />
+        <SidebarItem icon={<BarChart2 />} label="Analytics" active={activeTab === 'Analytics'} onClick={() => setActiveTab('Analytics')} />
+        <SidebarItem icon={<Clock />} label="Cooking Logs" active={activeTab === 'Cooking Logs'} onClick={() => setActiveTab('Cooking Logs')} />
+        <SidebarItem icon={<Database />} label="Ground Truth" active={activeTab === 'Ground Truth'} onClick={() => setActiveTab('Ground Truth')} />
+        <SidebarItem icon={<ShieldAlert />} label="Safety Protocols" active={activeTab === 'Safety Protocols'} onClick={() => setActiveTab('Safety Protocols')} />
       </nav>
 
       <div className="px-6 mt-auto">
@@ -42,12 +47,15 @@ const Sidebar: React.FC = () => {
   );
 };
 
-const SidebarItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean }> = ({ icon, label, active }) => {
+const SidebarItem: React.FC<{ icon: React.ReactNode, label: string, active?: boolean, onClick: () => void }> = ({ icon, label, active, onClick }) => {
   return (
-    <button className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all ${
-      active ? 'bg-blue-600/10 text-blue-500' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
-    }`}>
-      <span className="w-5 h-5">{icon}</span>
+    <button 
+      onClick={onClick}
+      className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all duration-300 ${
+        active ? 'bg-blue-600/15 text-blue-400 shadow-sm border border-blue-500/10' : 'text-slate-500 hover:bg-white/5 hover:text-slate-300'
+      }`}
+    >
+      <span className={`w-5 h-5 ${active ? 'text-blue-400' : ''}`}>{icon}</span>
       <span className="font-medium text-sm hidden lg:block">{label}</span>
     </button>
   );
