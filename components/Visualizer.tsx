@@ -79,6 +79,14 @@ const Visualizer: React.FC<VisualizerProps> = ({ state, temp, power, isEnvelopin
                 )}
               </div>
 
+              {/* Numerical Temperature Display (Real-time) */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none">
+                 <span className="text-4xl font-black tabular-nums tracking-tighter text-white drop-shadow-md">
+                   {temp.toFixed(1)}°
+                 </span>
+                 <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-[-4px]">Current GT</span>
+              </div>
+
               {/* Boil-over Danger Visual */}
               {state === CookingState.PREDICTING_BOILOVER && (
                 <div className="absolute top-0 left-0 right-0 h-12 bg-white/20 backdrop-blur-sm animate-pulse flex items-center justify-center z-20">

@@ -6,7 +6,7 @@ export interface SensorData {
   vibration: number;
   soundFrequency: number;
   powerLevel: number;
-  heatUniformity: number; // 0 to 100, 얼마나 균일하게 열이 퍼졌는가
+  heatUniformity: number;
 }
 
 export enum CookingState {
@@ -22,29 +22,22 @@ export interface Recipe {
   id: string;
   name: string;
   targetTemp: number;
-  cookTime: number; // in seconds
+  cookTime: number; // 초 단위
   description: string;
   icon: string;
-  isEnvelopingRequired?: boolean; // 가스레인지식 감싸는 열이 필요한지 여부
+  isEnvelopingRequired?: boolean;
+  autoStartCook?: boolean; // 재료 투입 대기 없이 바로 조리 카운트다운 시작 여부
 }
 
 export const RECIPES: Recipe[] = [
   {
-    id: 'ramen',
-    name: '신라면',
+    id: 'water',
+    name: '물끓이기',
     targetTemp: 100,
-    cookTime: 240,
-    description: '물 550ml, 면/스프 자율 넘침 방지',
-    icon: '🍜'
-  },
-  {
-    id: 'pancake',
-    name: '모듬전',
-    targetTemp: 160,
-    cookTime: 600,
-    description: '가스레인지식 감싸는 열(Enveloping Heat) 알고리즘 적용, 팬 가장자리까지 균일 가열',
-    icon: '🍳',
-    isEnvelopingRequired: true
+    cookTime: 60,
+    description: '가장 빠른 속도로 가열 후 자동 차단',
+    icon: '💧',
+    autoStartCook: true
   },
   {
     id: 'kimchi',
@@ -52,7 +45,26 @@ export const RECIPES: Recipe[] = [
     targetTemp: 100,
     cookTime: 900,
     description: '깊은 맛을 위한 고온 유지 및 졸임 제어',
-    icon: '🥘'
+    icon: '🥘',
+    isEnvelopingRequired: true
+  },
+  {
+    id: 'doenjang',
+    name: '된장찌개',
+    targetTemp: 100,
+    cookTime: 600,
+    description: '향 손실 최소화를 위한 정밀 온도 제어',
+    icon: '🍲',
+    isEnvelopingRequired: true
+  },
+  {
+    id: 'miyeok',
+    name: '미역국',
+    targetTemp: 100,
+    cookTime: 1200,
+    description: '뭉근한 가열로 육수 추출 최적화',
+    icon: '🥣',
+    isEnvelopingRequired: true
   },
   {
     id: 'fish_fry',
@@ -69,16 +81,15 @@ export const RECIPES: Recipe[] = [
     targetTemp: 105,
     cookTime: 1200,
     description: '뜸 들이기 단계를 포함한 압력/온도 제어',
-    icon: '🍚'
+    icon: '🍚',
+    autoStartCook: true
   },
   {
-    id: 'water',
-    name: '물끓이기',
+    id: 'ramen',
+    name: '라면',
     targetTemp: 100,
-    cookTime: 30,
-    description: '가장 빠른 속도로 끓인 후 자동 차단',
-    icon: '💧'
+    cookTime: 240,
+    description: '물 550ml, 면/스프 자율 넘침 방지',
+    icon: '🍜'
   }
 ];
-
-export const RAMEN_RECIPE = RECIPES[0];
