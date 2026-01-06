@@ -11,6 +11,7 @@ export interface SensorData {
 
 export enum CookingState {
   IDLE = 'IDLE',
+  RESERVED = 'RESERVED', // 예약 대기 상태 추가
   HEATING_WATER = 'HEATING_WATER',
   WAITING_FOR_INGREDIENTS = 'WAITING_FOR_INGREDIENTS',
   COOKING_INGR_ACTIVE = 'COOKING_INGR_ACTIVE',
@@ -26,7 +27,8 @@ export interface Recipe {
   description: string;
   icon: string;
   isEnvelopingRequired?: boolean;
-  autoStartCook?: boolean; // 재료 투입 대기 없이 바로 조리 카운트다운 시작 여부
+  autoStartCook?: boolean;
+  canReserve?: boolean; // 예약 가능 여부
 }
 
 export const RECIPES: Recipe[] = [
@@ -37,7 +39,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 60,
     description: '가장 빠른 속도로 가열 후 자동 차단',
     icon: '💧',
-    autoStartCook: true
+    autoStartCook: true,
+    canReserve: false
   },
   {
     id: 'kimchi',
@@ -46,7 +49,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 900,
     description: '깊은 맛을 위한 고온 유지 및 졸임 제어',
     icon: '🥘',
-    isEnvelopingRequired: true
+    isEnvelopingRequired: true,
+    canReserve: true
   },
   {
     id: 'doenjang',
@@ -55,7 +59,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 600,
     description: '향 손실 최소화를 위한 정밀 온도 제어',
     icon: '🍲',
-    isEnvelopingRequired: true
+    isEnvelopingRequired: true,
+    canReserve: true
   },
   {
     id: 'miyeok',
@@ -64,7 +69,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 1200,
     description: '뭉근한 가열로 육수 추출 최적화',
     icon: '🥣',
-    isEnvelopingRequired: true
+    isEnvelopingRequired: true,
+    canReserve: true
   },
   {
     id: 'fish_fry',
@@ -73,7 +79,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 480,
     description: '180°C 항온 제어로 겉바속촉 구현',
     icon: '🐟',
-    isEnvelopingRequired: true
+    isEnvelopingRequired: true,
+    canReserve: false
   },
   {
     id: 'rice',
@@ -82,7 +89,8 @@ export const RECIPES: Recipe[] = [
     cookTime: 1200,
     description: '뜸 들이기 단계를 포함한 압력/온도 제어',
     icon: '🍚',
-    autoStartCook: true
+    autoStartCook: true,
+    canReserve: true
   },
   {
     id: 'ramen',
@@ -90,6 +98,7 @@ export const RECIPES: Recipe[] = [
     targetTemp: 100,
     cookTime: 240,
     description: '물 550ml, 면/스프 자율 넘침 방지',
-    icon: '🍜'
+    icon: '🍜',
+    canReserve: false
   }
 ];
