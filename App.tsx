@@ -15,9 +15,8 @@ import {
   Layers,
   BarChart2,
   Database,
-  ShieldAlert,
-  ChevronRight,
-  ChevronLeft
+  Flame,
+  LayoutGrid
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -47,6 +46,7 @@ const App: React.FC = () => {
   const [remainingTime, setRemainingTime] = useState(0);
   const [isIngredientsAdded, setIsIngredientsAdded] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState<Recipe>(RECIPES[0]);
+  const [uniformity, setUniformity] = useState(100);
   
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -58,7 +58,8 @@ const App: React.FC = () => {
         groundTruthTemp: 22,
         vibration: 2,
         soundFrequency: 50,
-        powerLevel: 0
+        powerLevel: 0,
+        heatUniformity: 100
       };
 
       const newTime = last.time + 1;
@@ -66,6 +67,7 @@ const App: React.FC = () => {
       let nextGroundTruth = last.groundTruthTemp;
       let nextLegacy = last.legacyTemp;
       let nextVibration = last.vibration;
+      let nextUniformity = last.heatUniformity;
 
       // Heating logic
       if (currentPower > 0) {
@@ -73,9 +75,18 @@ const App: React.FC = () => {
         const heatGain = (currentPower / 12) * (1.5 - nextGroundTruth / (target + 50));
         nextGroundTruth += heatGain;
         nextLegacy += (nextGroundTruth - nextLegacy) * 0.04 + (Math.random() - 0.5);
+
+        // Uniformity logic: If in Enveloping mode, uniformity stays high. 
+        // In Direct mode (legacy), it drops as center gets hot.
+        if (selectedRecipe.isEnvelopingRequired) {
+          nextUniformity = Math.min(100, nextUniformity + 0.5);
+        } else {
+          nextUniformity = Math.max(40, nextUniformity - 0.2);
+        }
       } else {
         nextGroundTruth -= 0.15;
         nextLegacy -= 0.1;
+        nextUniformity = Math.min(100, nextUniformity + 0.1); // Cooling down balances temp
       }
 
       let nextState = state;
@@ -96,7 +107,7 @@ const App: React.FC = () => {
         
         nextVibration = 5 + (nextGroundTruth > boilThreshold ? (nextGroundTruth - boilThreshold) * 6 * frothFactor : 0) + (Math.random() * 5);
         
-        if (nextVibration > 40 && selectedRecipe.id !== 'fish_fry') {
+        if (nextVibration > 40 && !selectedRecipe.isEnvelopingRequired) {
           nextState = CookingState.PREDICTING_BOILOVER;
           currentPower = 2;
         } else if (remainingTime <= 0) {
@@ -116,6 +127,7 @@ const App: React.FC = () => {
 
       setState(nextState);
       setPower(currentPower);
+      setUniformity(nextUniformity);
 
       const newData: SensorData = {
         time: newTime,
@@ -123,7 +135,8 @@ const App: React.FC = () => {
         groundTruthTemp: Math.max(22, nextGroundTruth),
         vibration: Math.max(2, nextVibration),
         soundFrequency: 100 + nextGroundTruth,
-        powerLevel: currentPower
+        powerLevel: currentPower,
+        heatUniformity: nextUniformity
       };
 
       return [...prev, newData].slice(-60);
@@ -141,7 +154,7 @@ const App: React.FC = () => {
 
   const startCooking = () => {
     setIsRunning(true);
-    setPower(10);
+    setPower(selectedRecipe.isEnvelopingRequired ? 6 : 10); // Enveloping starts slower for balance
     setState(CookingState.HEATING_WATER);
     setRemainingTime(selectedRecipe.cookTime);
     setIsIngredientsAdded(false);
@@ -214,7 +227,7 @@ const App: React.FC = () => {
                       onClick={() => setSelectedRecipe(recipe)}
                       className={`flex flex-col items-center gap-2 p-4 rounded-2xl transition-all border ${
                         selectedRecipe.id === recipe.id 
-                          ? 'bg-blue-600/20 border-blue-500/50 text-white' 
+                          ? (recipe.isEnvelopingRequired ? 'bg-orange-600/20 border-orange-500/50 text-white' : 'bg-blue-600/20 border-blue-500/50 text-white')
                           : 'bg-white/5 border-transparent text-slate-400 hover:bg-white/10'
                       } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
                     >
@@ -228,11 +241,13 @@ const App: React.FC = () => {
               <div className="glass rounded-[2rem] p-6 lg:p-8 border border-white/5 relative overflow-hidden h-[450px]">
                 <div className="absolute top-6 left-8 z-10 flex flex-col gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="p-2.5 bg-blue-600 rounded-xl shadow-lg shadow-blue-900/20">
-                      <UtensilsCrossed className="w-5 h-5 text-white" />
+                    <div className={`p-2.5 rounded-xl shadow-lg ${selectedRecipe.isEnvelopingRequired ? 'bg-orange-600 shadow-orange-900/20' : 'bg-blue-600 shadow-blue-900/20'}`}>
+                      {selectedRecipe.isEnvelopingRequired ? <Flame className="w-5 h-5 text-white" /> : <Zap className="w-5 h-5 text-white" />}
                     </div>
                     <div>
-                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Active Intelligence</h3>
+                      <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                        {selectedRecipe.isEnvelopingRequired ? 'Enveloping Heat Mode' : 'Direct Induction Mode'}
+                      </h3>
                       <p className="text-xl font-bold tracking-tight">{selectedRecipe.name} 자동조리</p>
                     </div>
                   </div>
@@ -246,17 +261,13 @@ const App: React.FC = () => {
                        </div>
                      </div>
                      
-                     {(state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER) && (
-                       <div className="px-4 py-2 bg-blue-600/10 rounded-2xl border border-blue-500/20 backdrop-blur-md">
-                          <p className="text-[10px] text-blue-400 uppercase font-bold mb-1">Cook Timer</p>
-                          <div className="flex items-center gap-2">
-                             <Timer className="w-4 h-4 text-blue-400" />
-                             <span className="text-sm font-black tabular-nums tracking-tighter text-blue-100">
-                               {Math.floor(remainingTime / 60)}:{(remainingTime % 60).toFixed(0).padStart(2, '0')}
-                             </span>
-                          </div>
-                       </div>
-                     )}
+                     <div className="px-4 py-2 bg-white/5 rounded-2xl border border-white/10 backdrop-blur-md">
+                        <p className="text-[10px] text-slate-500 uppercase font-bold mb-1">Heat Uniformity</p>
+                        <div className="flex items-center gap-2">
+                           <LayoutGrid className="w-4 h-4 text-emerald-400" />
+                           <span className="text-sm font-black text-emerald-400">{uniformity.toFixed(0)}%</span>
+                        </div>
+                     </div>
                   </div>
                 </div>
 
@@ -264,6 +275,7 @@ const App: React.FC = () => {
                   state={state} 
                   temp={history[history.length - 1]?.groundTruthTemp || 22}
                   power={power}
+                  isEnvelopingMode={selectedRecipe.isEnvelopingRequired}
                 />
 
                 <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row justify-between items-center gap-4">
@@ -272,14 +284,16 @@ const App: React.FC = () => {
                     <div>
                       <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Smart Protection</p>
                       <p className="text-xs font-medium text-slate-200">
-                        {state === CookingState.PREDICTING_BOILOVER ? '넘침 전조 감지 - 화력 자율 제어 중' : `${selectedRecipe.name} 최적 온도 모니터링`}
+                        {state === CookingState.PREDICTING_BOILOVER ? '넘침 전조 감지 - 화력 자율 제어 중' : `${selectedRecipe.name} 최적 온도 및 균일도 모니터링`}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex gap-3 w-full md:w-auto">
                     {state === CookingState.IDLE && (
-                      <button onClick={startCooking} className="w-full md:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-500 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-2xl shadow-blue-600/20 transition-all hover:-translate-y-1">
+                      <button onClick={startCooking} className={`w-full md:w-auto px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-2xl transition-all hover:-translate-y-1 ${
+                        selectedRecipe.isEnvelopingRequired ? 'bg-orange-600 hover:bg-orange-500 shadow-orange-600/20' : 'bg-blue-600 hover:bg-blue-500 shadow-blue-600/20'
+                      }`}>
                         <Play className="w-5 h-5 fill-current" /> 자율 조리 시작
                       </button>
                     )}
@@ -305,23 +319,21 @@ const App: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="glass rounded-3xl p-6 border border-white/5">
                   <h4 className="text-xs font-bold mb-4 flex items-center gap-2 text-slate-400 uppercase tracking-widest">
-                    <Thermometer className="w-4 h-4 text-orange-400" /> Thermal Ground Truth (GT)
+                    <Thermometer className="w-4 h-4 text-orange-400" /> Thermal Distribution Analysis
                   </h4>
                   <div className="h-40">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={history}>
                         <defs>
-                          <linearGradient id="colorGt" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#f97316" stopOpacity={0.2}/>
-                            <stop offset="95%" stopColor="#f97316" stopOpacity={0}/>
+                          <linearGradient id="colorUniformity" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
+                            <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
                           </linearGradient>
                         </defs>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
                         <XAxis dataKey="time" hide />
-                        <YAxis hide domain={[0, selectedRecipe.targetTemp + 20]} />
-                        <Tooltip contentStyle={{backgroundColor: '#0a0a0c', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px'}} />
-                        <Area type="monotone" dataKey="groundTruthTemp" stroke="#f97316" fill="url(#colorGt)" strokeWidth={3} isAnimationActive={false} />
-                        <Line type="monotone" dataKey="legacyTemp" stroke="#475569" strokeDasharray="4 4" dot={false} isAnimationActive={false} />
+                        <YAxis hide domain={[0, 100]} />
+                        <Area type="monotone" dataKey="heatUniformity" stroke="#10b981" fill="url(#colorUniformity)" strokeWidth={3} isAnimationActive={false} />
                       </AreaChart>
                     </ResponsiveContainer>
                   </div>
@@ -355,23 +367,25 @@ const App: React.FC = () => {
                     {selectedRecipe.id !== 'water' && (
                       <StepItem done={isIngredientsAdded} active={state === CookingState.WAITING_FOR_INGREDIENTS} label="주재료 투입 및 안정화" />
                     )}
-                    <StepItem done={state === CookingState.COMPLETE} active={state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER} label="AI 자율 제어 및 정밀 가열" />
+                    <StepItem done={state === CookingState.COMPLETE} active={state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER} label={selectedRecipe.isEnvelopingRequired ? "입체 가열 알고리즘 활성" : "AI 자율 제어 및 정밀 가열"} />
                     <StepItem done={false} active={state === CookingState.COMPLETE} label="조리 완료 및 자동 차단" />
                  </div>
               </div>
 
               <div className="glass rounded-3xl p-6 border border-white/5">
                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">레시피 상세 정보</h3>
+                    <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400">AI 알고리즘 정보</h3>
                     <Database className="w-4 h-4 text-blue-500" />
                  </div>
                  <div className="space-y-4">
-                    <div className="p-4 rounded-2xl bg-blue-500/5 border border-blue-500/10">
-                      <p className="text-xs text-blue-400 font-bold mb-1">Recipe Description</p>
+                    <div className={`p-4 rounded-2xl border ${selectedRecipe.isEnvelopingRequired ? 'bg-orange-500/5 border-orange-500/10' : 'bg-blue-500/5 border-blue-500/10'}`}>
+                      <p className={`text-xs font-bold mb-1 ${selectedRecipe.isEnvelopingRequired ? 'text-orange-400' : 'text-blue-400'}`}>
+                        {selectedRecipe.isEnvelopingRequired ? 'Enveloping Algorithm' : 'Direct Logic'}
+                      </p>
                       <p className="text-sm text-slate-300 leading-relaxed">{selectedRecipe.description}</p>
                     </div>
                     <MetricCard label="Target Temp" value={`${selectedRecipe.targetTemp}°C`} description="Ground Truth Goal" icon={<Thermometer />} />
-                    <MetricCard label="Estimated Time" value={`${Math.floor(selectedRecipe.cookTime/60)}m`} description="Standard Protocol" improvement icon={<Timer />} />
+                    <MetricCard label="Uniformity Target" value="95%" description="Heat Distribution" improvement icon={<LayoutGrid />} />
                  </div>
               </div>
             </div>

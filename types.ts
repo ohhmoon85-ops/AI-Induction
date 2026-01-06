@@ -6,6 +6,7 @@ export interface SensorData {
   vibration: number;
   soundFrequency: number;
   powerLevel: number;
+  heatUniformity: number; // 0 to 100, 얼마나 균일하게 열이 퍼졌는가
 }
 
 export enum CookingState {
@@ -24,6 +25,7 @@ export interface Recipe {
   cookTime: number; // in seconds
   description: string;
   icon: string;
+  isEnvelopingRequired?: boolean; // 가스레인지식 감싸는 열이 필요한지 여부
 }
 
 export const RECIPES: Recipe[] = [
@@ -36,6 +38,15 @@ export const RECIPES: Recipe[] = [
     icon: '🍜'
   },
   {
+    id: 'pancake',
+    name: '모듬전',
+    targetTemp: 160,
+    cookTime: 600,
+    description: '가스레인지식 감싸는 열(Enveloping Heat) 알고리즘 적용, 팬 가장자리까지 균일 가열',
+    icon: '🍳',
+    isEnvelopingRequired: true
+  },
+  {
     id: 'kimchi',
     name: '김치찌개',
     targetTemp: 100,
@@ -44,28 +55,13 @@ export const RECIPES: Recipe[] = [
     icon: '🥘'
   },
   {
-    id: 'doenjang',
-    name: '된장찌개',
-    targetTemp: 100,
-    cookTime: 600,
-    description: '향 손실 최소화를 위한 정밀 온도 제어',
-    icon: '🍲'
-  },
-  {
-    id: 'miyeok',
-    name: '미역국',
-    targetTemp: 100,
-    cookTime: 1200,
-    description: '뭉근한 가열로 육수 추출 최적화',
-    icon: '🥣'
-  },
-  {
     id: 'fish_fry',
     name: '생선튀김',
     targetTemp: 180,
     cookTime: 480,
     description: '180°C 항온 제어로 겉바속촉 구현',
-    icon: '🐟'
+    icon: '🐟',
+    isEnvelopingRequired: true
   },
   {
     id: 'rice',
