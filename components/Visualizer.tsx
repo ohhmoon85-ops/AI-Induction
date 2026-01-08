@@ -7,137 +7,113 @@ interface VisualizerProps {
   temp: number;
   power: number;
   isEnvelopingMode?: boolean;
+  sensorArray: number[];
 }
 
-const Visualizer: React.FC<VisualizerProps> = ({ state, temp, power, isEnvelopingMode }) => {
+const Visualizer: React.FC<VisualizerProps> = ({ state, temp, power, isEnvelopingMode, sensorArray }) => {
   const tempRatio = Math.min(temp / 100, 1);
   const isBoiling = temp >= 98;
-  const showIngredients = state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.PREDICTING_BOILOVER || state === CookingState.COMPLETE;
+  const showIngredients = state === CookingState.COOKING_INGR_ACTIVE || state === CookingState.COMPLETE;
+
+  // 특허 도면 5: 센서 210(중앙)과 220(주변 8개)의 배치 좌표
+  const sensorPositions = [
+    { x: 50, y: 50 }, // 210: Center
+    { x: 50, y: 20 }, // 220-1
+    { x: 72, y: 28 }, // 220-2
+    { x: 80, y: 50 }, // 220-3
+    { x: 72, y: 72 }, // 220-4
+    { x: 50, y: 80 }, // 220-5
+    { x: 28, y: 72 }, // 220-6
+    { x: 20, y: 50 }, // 220-7
+    { x: 28, y: 28 }, // 220-8
+  ];
 
   return (
     <div className="w-full h-full flex items-center justify-center relative">
-      <div className="relative w-80 h-80 rounded-[40px] border border-white/10 flex items-center justify-center">
+      <div className="relative w-80 h-80 rounded-[45px] border border-white/5 flex items-center justify-center bg-black/20">
         
-        {/* Active Heat Glow (Central) */}
-        <div 
-          className="absolute inset-20 rounded-full blur-3xl transition-all duration-700"
-          style={{ 
-            backgroundColor: `rgba(255, ${Math.max(0, 150 - temp)}, 50, ${0.3 * (power/10)})`,
-            transform: `scale(${0.5 + tempRatio})`,
-            opacity: power > 0 ? 1 : 0
-          }} 
-        />
+        {/* Heat Map Layer (Patent-based Multi-point Sensing) */}
+        <div className="absolute inset-0 z-0 overflow-hidden rounded-[40px]">
+           {sensorPositions.map((pos, i) => {
+             const sTemp = sensorArray[i] || 22;
+             const sRatio = Math.min((sTemp - 20) / 80, 1);
+             return (
+               <div 
+                 key={i}
+                 className="absolute w-32 h-32 rounded-full blur-[40px] transition-all duration-1000 opacity-40"
+                 style={{ 
+                   left: `${pos.x}%`, 
+                   top: `${pos.y}%`, 
+                   transform: 'translate(-50%, -50%)',
+                   backgroundColor: `rgb(${150 + sRatio * 105}, ${100 - sRatio * 100}, 50)`
+                 }}
+               />
+             );
+           })}
+        </div>
 
-        {/* Enveloping Heat Simulation (Sides) */}
-        {isEnvelopingMode && power > 0 && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-             <div className="w-64 h-64 rounded-full border-[20px] border-orange-500/10 blur-xl animate-pulse" />
-             <div className="absolute w-72 h-72 rounded-full border-[2px] border-orange-400/20 animate-ping opacity-30" />
-          </div>
-        )}
-
-        {/* The Pot */}
-        <div className={`relative w-56 h-56 transition-all duration-500 ${isBoiling ? 'animate-vibrate' : ''}`}>
-           {/* Pot body */}
-           <div className="w-full h-full rounded-3xl bg-gradient-to-br from-slate-400 to-slate-600 shadow-2xl relative overflow-hidden border border-white/20">
+        {/* Patent Vessel Outline (Real-time Position Feedback) */}
+        <div className={`relative w-60 h-60 transition-all duration-700 ${isBoiling ? 'animate-vibrate' : ''}`}>
+           <div className="w-full h-full rounded-[2.5rem] bg-gradient-to-br from-slate-500/40 to-slate-800/60 backdrop-blur-sm shadow-2xl relative overflow-hidden border border-white/10">
               
-              {/* Heat rising on sides (Visual for Enveloping) */}
-              {isEnvelopingMode && power > 0 && (
-                <div className="absolute inset-0 z-0">
-                  <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-orange-500/20 to-transparent animate-pulse" />
-                  <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-orange-500/20 to-transparent animate-pulse" />
-                </div>
-              )}
-
-              {/* Water/Content Level */}
+              {/* Boiling Simulation */}
               <div 
-                className="absolute bottom-0 left-0 right-0 bg-blue-500/20 transition-all duration-1000 ease-in-out z-10"
-                style={{ height: `${20 + (tempRatio * 60)}%` }}
+                className="absolute bottom-0 left-0 right-0 bg-blue-400/10 transition-all duration-1000 ease-in-out z-10"
+                style={{ height: `${25 + (tempRatio * 55)}%` }}
               >
-                {/* Boiling Bubbles */}
                 {isBoiling && (
                   <div className="absolute inset-0">
-                    {[...Array(12)].map((_, i) => (
+                    {[...Array(8)].map((_, i) => (
                       <div 
                         key={i} 
-                        className={`absolute w-3 h-3 bg-white/40 rounded-full animate-bubble`} 
-                        style={{ 
-                          left: `${Math.random() * 90}%`, 
-                          animationDelay: `${Math.random() * 2}s`
-                        }} 
+                        className="absolute w-2 h-2 bg-white/30 rounded-full animate-bubble" 
+                        style={{ left: `${10 + Math.random() * 80}%`, animationDelay: `${Math.random() * 2}s` }} 
                       />
                     ))}
                   </div>
                 )}
-
-                {/* Content Representation */}
-                {showIngredients && (
-                  <div className="absolute inset-4 flex items-center justify-center">
-                    <div className="w-full h-4 bg-yellow-200/40 rounded-full blur-[2px] animate-pulse" />
-                    <div className="absolute inset-0 bg-orange-500/5" />
-                  </div>
-                )}
               </div>
 
-              {/* Numerical Temperature Display (Real-time) */}
+              {/* Central Temperature Display */}
               <div className="absolute inset-0 flex flex-col items-center justify-center z-30 pointer-events-none">
-                 <span className="text-4xl font-black tabular-nums tracking-tighter text-white drop-shadow-md">
-                   {temp.toFixed(1)}°
-                 </span>
-                 <span className="text-[10px] font-bold text-white/60 uppercase tracking-widest mt-[-4px]">Current GT</span>
+                 <div className="bg-black/40 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/5">
+                    <span className="text-3xl font-black tabular-nums text-white drop-shadow-lg">
+                      {temp.toFixed(1)}°
+                    </span>
+                 </div>
+                 <span className="text-[8px] font-black text-white/40 uppercase tracking-[0.2em] mt-2">IR Ground Truth</span>
               </div>
 
-              {/* Boil-over Danger Visual */}
-              {state === CookingState.PREDICTING_BOILOVER && (
-                <div className="absolute top-0 left-0 right-0 h-12 bg-white/20 backdrop-blur-sm animate-pulse flex items-center justify-center z-20">
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">AI Heat Modulation</span>
+              {/* Disturbance Indicator (Patent Disturbances) */}
+              {state === CookingState.DISTURBANCE_DETECTED && (
+                <div className="absolute inset-0 bg-red-500/10 border-4 border-red-500/30 animate-pulse z-40 flex items-center justify-center">
+                   <span className="bg-red-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-lg uppercase">Disturbance Detected</span>
                 </div>
               )}
            </div>
 
-           {/* Sensors Indicator */}
-           <div className="absolute -right-16 top-1/2 -translate-y-1/2 flex flex-col gap-2">
-              <div className="flex items-center gap-2">
-                <div className={`w-8 h-[2px] ${isEnvelopingMode ? 'bg-orange-500 shadow-[0_0_10px_#f97316]' : 'bg-blue-500 shadow-[0_0_10px_#3b82f6]'}`} />
-                <div className={`text-[8px] font-bold px-2 py-1 rounded text-white whitespace-nowrap ${isEnvelopingMode ? 'bg-orange-600' : 'bg-blue-600'}`}>
-                  {isEnvelopingMode ? 'ENVELOPING MODE' : 'DIRECT MODE'}
-                </div>
+           {/* Core Coil Flux (Patent Component 110) */}
+           <div className="absolute -bottom-14 left-1/2 -translate-x-1/2 w-40 flex flex-col items-center gap-1 opacity-60">
+              <div className="text-[8px] font-bold text-slate-500 tracking-tighter">WORKING COIL (110) FLUX</div>
+              <div className="flex gap-0.5 w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                {[...Array(12)].map((_, i) => (
+                  <div key={i} className={`flex-1 ${i < power ? 'bg-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.8)]' : ''}`} />
+                ))}
               </div>
            </div>
-        </div>
-
-        {/* Magnetic Induction Bars */}
-        <div className="absolute -bottom-10 flex flex-col items-center">
-          <div className="text-[10px] font-bold text-slate-500 uppercase mb-2">Magnetic Flux Core</div>
-          <div className="flex gap-1 h-1.5 w-48 bg-white/5 rounded-full overflow-hidden">
-            {[...Array(10)].map((_, i) => (
-              <div 
-                key={i} 
-                className={`flex-1 transition-all duration-300 ${
-                  i < power 
-                    ? (isEnvelopingMode ? 'bg-orange-500' : 'bg-blue-500') 
-                    : 'bg-transparent'
-                }`} 
-              />
-            ))}
-          </div>
         </div>
       </div>
 
       <style>{`
         @keyframes bubble {
           0% { transform: translateY(0) scale(0.5); opacity: 0; }
-          50% { opacity: 0.6; }
-          100% { transform: translateY(-60px) scale(1.2); opacity: 0; }
+          100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
         }
         @keyframes vibrate {
-          0% { transform: translate(0,0); }
-          25% { transform: translate(0.5px, 0.5px); }
-          50% { transform: translate(-0.5px, 0); }
-          75% { transform: translate(0.5px, -0.5px); }
-          100% { transform: translate(0,0); }
+          0%, 100% { transform: translate(0,0); }
+          50% { transform: translate(0.5px, 0.5px); }
         }
-        .animate-bubble { animation: bubble linear infinite 1s; }
+        .animate-bubble { animation: bubble linear infinite 1.2s; }
         .animate-vibrate { animation: vibrate 0.1s infinite; }
       `}</style>
     </div>
