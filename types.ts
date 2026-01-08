@@ -17,11 +17,11 @@ export enum CookingState {
   WAITING_FOR_INGREDIENTS = 'WAITING_FOR_INGREDIENTS',
   COOKING_INGR_ACTIVE = 'COOKING_INGR_ACTIVE',
   PREDICTING_BOILOVER = 'PREDICTING_BOILOVER',
-  DISTURBANCE_DETECTED = 'DISTURBANCE_DETECTED', // 외란 감지 상태 추가
+  DISTURBANCE_DETECTED = 'DISTURBANCE_DETECTED',
   COMPLETE = 'COMPLETE'
 }
 
-export type CookingType = 'BOILING' | 'FRYING' | 'STIR_FRYING' | 'SIMMERING' | 'UNKNOWN';
+export type CookingType = 'BOILING' | 'FRYING' | 'STIR_FRYING' | 'SIMMERING' | 'PANCAKE' | 'UNKNOWN';
 
 export interface VesselInfo {
   material: 'Stainless' | 'Cast Iron' | 'Aluminum' | 'Unknown';
@@ -52,44 +52,24 @@ export const RECIPES: Recipe[] = [
     canReserve: false
   },
   {
+    id: 'pancake',
+    name: '전/부침',
+    targetTemp: 180, // 160 -> 180 상향
+    cookTime: 600,
+    description: '중앙 집중 과열을 방지하고 팬 전체를 균일하게 가열',
+    icon: '🍳',
+    canReserve: false,
+    isEnvelopingRequired: true
+  },
+  {
     id: 'ramen',
     name: '라면',
     targetTemp: 100,
     cookTime: 240,
-    description: '물 550ml 기준, 면/스프 투하 시 넘침 감지 및 동적 화력 제어',
+    description: '물 550ml 기준, 넘침 감지 및 동적 화력 제어',
     icon: '🍜',
     canReserve: true,
-    autoStartCook: false // 물이 끓으면 사용자에게 알림 후 면 투하 대기
-  },
-  {
-    id: 'kimchi',
-    name: '김치찌개',
-    targetTemp: 100,
-    cookTime: 900,
-    description: '깊은 맛을 위한 고온 유지 및 졸임 제어',
-    icon: '🥘',
-    isEnvelopingRequired: true,
-    canReserve: true
-  },
-  {
-    id: 'rice',
-    name: '밥하기',
-    targetTemp: 105,
-    cookTime: 1200,
-    description: '뜸 들이기 단계를 포함한 압력/온도 제어',
-    icon: '🍚',
-    autoStartCook: true,
-    canReserve: true
-  },
-  {
-    id: 'miyeok',
-    name: '미역국',
-    targetTemp: 100,
-    cookTime: 1200,
-    description: '뭉근한 가열로 깊은 육수 추출 최적화',
-    icon: '🥣',
-    isEnvelopingRequired: true,
-    canReserve: true
+    autoStartCook: false
   },
   {
     id: 'fish_fry',
